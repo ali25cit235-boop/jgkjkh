@@ -15,15 +15,7 @@ jobs:
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
-      - name: Install Node.js (for LocalTunnel)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install LocalTunnel
-        run: npm install -g localtunnel
-
-      - name: Start RDP Tunnel
+      - name: Start TCP RDP Tunnel via Pinggy
         run: |
           Write-Host "======================================================================"
           Write-Host "            RDP Connection Details - NTechDz Channel"
@@ -31,4 +23,4 @@ jobs:
           Write-Host "Username:    NTechDz (Administrator)"
           Write-Host "Password:    W1nd0ws-P4ssw0rd-2025!"
           Write-Host "======================================================================"
-          lt --port 3389
+          ssh -o StrictHostKeyChecking=no -R 0:localhost:3389 tcp@a.pinggy.io
