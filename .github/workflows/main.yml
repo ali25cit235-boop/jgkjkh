@@ -23,4 +23,4 @@ jobs:
           Write-Host "Username:    NTechDz (Administrator)"
           Write-Host "Password:    W1nd0ws-P4ssw0rd-2025!"
           Write-Host "======================================================================"
-          ssh -o StrictHostKeyChecking=no -R 0:localhost:3389 tcp@a.pinggy.io
+          ssh -T -o StrictHostKeyChecking=no -R 0:localhost:3389 tcp@a.pinggy.io
