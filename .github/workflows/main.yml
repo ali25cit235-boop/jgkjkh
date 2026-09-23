@@ -15,14 +15,7 @@ jobs:
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
-      - name: Download and Setup LocalXpose
-        run: |
-          Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile loclx.zip
-          # Alternative: Downloading LocalXpose client for Windows
-          Invoke-WebRequest -Uri "https://api.localxpose.io/api/v2/downloads/loclx-windows-amd64.zip" -OutFile loclx.zip
-          Expand-Archive loclx.zip -DestinationPath .
-
-      - name: Start TCP RDP Tunnel
+      - name: Start TCP RDP Tunnel via Serveo
         run: |
           Write-Host "======================================================================"
           Write-Host "            RDP Connection Details - NTechDz Channel"
@@ -30,4 +23,4 @@ jobs:
           Write-Host "Username:    NTechDz (Administrator)"
           Write-Host "Password:    W1nd0ws-P4ssw0rd-2025!"
           Write-Host "======================================================================"
-          .\loclx.exe tunnel tcp --to :3389
+          ssh -T -o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net
