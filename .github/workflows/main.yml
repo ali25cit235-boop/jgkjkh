@@ -46,13 +46,14 @@ jobs:
           if (Test-Path "pinggy.log") { $logContent += Get-Content "pinggy.log" -Raw }
           if (Test-Path "pinggy_err.log") { $logContent += Get-Content "pinggy_err.log" -Raw }
 
-          # Clean ANSI codes
+          # Clean ANSI color codes
           $cleanLog =$logContent -replace '\x1b\[[0-9;]*[a-zA-Z]', ''
 
-          # Extract Pinggy IP:Port (e.g. a.pinggy.io:12345)
+          # Smart Regex: Pinggy ke sabhi domain extensions (.io, .link, .online) catch karega
           $cleanIP = "Not Found"
-          if ($cleanLog -match "tcp://([\w\.]+\.pinggy\.io:\d+)") {
-              $cleanIP = $matches[1]           } elseif ($cleanLog -match "([\w\.]+\.pinggy\.io:\d+)") {
+          if ($cleanLog -match "([\w\.-]+\.pinggy\.[a-zA-Z]+:\d+)") {
+              $cleanIP =$matches[1] -replace 'tcp://', ''
+          } elseif ($cleanLog -match "tcp://([^\s\x00-\x1f]+)") {
               $cleanIP =$matches[1]
           }
 
