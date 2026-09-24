@@ -2,8 +2,8 @@ name: Rdp1-ByNTechDz
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Har 6 ghante baad auto-restart hoga
-  workflow_dispatch:        # Manual start karne ke liye
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,24 +21,20 @@ jobs:
 
       - name: Connect Oracle SSH Tunnel & Send Info to Discord
         run: |
-          # SSH client / PuTTY install karo
           choco install putty -y
 
-          # APNI ORACLE VPS KI DETAILS YAHAN DARJ KARO
-          $oracleIP = "129.213.164.255"        # e.g. "129.150.x.x"
-          $oracleUser = "ubuntu"              # Oracle VPS user
-          $oraclePass = "ali"# Jo password set kiya tha
-          $rdpPort = "33891"                  # Target Port (RDP 1 ke liye)
+          $oracleIP = "129.213.164.255"
+          $oracleUser = "ubuntu"
+          $oraclePass = "ali" # Apna actual password yahan likho
+          $rdpPort = "33891"
 
-          # Background me Oracle VPS ke sath tunnel start karo
-          Start-Process -FilePath "plink.exe" -ArgumentList "-ssh -pw $oraclePass -N -R 0.0.0.0:${rdpPort}:localhost:3389 ${oracleUser}@${oracleIP} -batch"
-          Start-Sleep -Seconds 12
+          # -y flag automatically accepts the SSH server host key
+          echo y | plink -ssh -pw $oraclePass -N -R 0.0.0.0:${rdpPort}:localhost:3389 ${oracleUser}@${oracleIP} -batch &
+          
+          Start-Sleep -Seconds 15
 
-          # Final Connection IP Address
           $cleanIP = "${oracleIP}:${rdpPort}"
-
-          # DISCORD WEBHOOK URL YAHAN PASTE KARO
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552646110085128192/VeYatEQXEi2XQSOKyRU1qcvKeaCvR2jalJwZ12V5lA_ybI3ZRJz88mmneuQ2pBaNp7px"
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Apna Webhook URL yahan likho
 
           $cb = '```'
           $ipFormatted = "$cb$cleanIP$cb"
@@ -62,7 +58,6 @@ jobs:
 
       - name: Keep Alive Loop
         run: |
-          # Runner ko active rakhne ke liye loop
           while ($true) {
               Start-Sleep -Seconds 60
           }
