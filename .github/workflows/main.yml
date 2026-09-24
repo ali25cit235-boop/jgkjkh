@@ -19,20 +19,17 @@ jobs:
 
       - name: Setup Secure SSH Known Hosts & Connect Tunnel
         run: |
-          # Oracle VPS ki verified public key ko GitHub runner par securely save karna
           $sshDir = "$env:USERPROFILE\.ssh"
           if (!(Test-Path $sshDir)) { New-Item -ItemType Directory -Path$sshDir }
           
-          # Aapki di gayi exact verified key ko known_hosts me likh rahe hain
           "129.213.164.255 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEsDzi4hhwVmbrhwypuXSa2whtCDeRzhpU+5IXTdTcZM" | Out-File -Encoding ascii "$sshDir\known_hosts"
 
           $oracleIP = "129.213.164.255"
           $oracleUser = "ubuntu"
-          $oraclePass = "ali"  # Apna Oracle VPS ka password yahan likho
+          $oraclePass = "ali"
           $rdpPort = "33891"
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW" # Apna Discord Webhook URL yahan likho
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW"
 
-          # Native SSH Tunnel in background with verified key check
           $psi = New-Object System.Diagnostics.ProcessStartInfo
           $psi.FileName = "ssh"
           $psi.Arguments = "-o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
@@ -40,7 +37,6 @@ jobs:
           $psi.RedirectStandardOutput = "ssh_out.log"
           $p = [System.Diagnostics.Process]::Start($psi)
           
-          # Send password non-interactively
           $p.StandardInput.WriteLine($oraclePass)
 
           Start-Sleep -Seconds 12
