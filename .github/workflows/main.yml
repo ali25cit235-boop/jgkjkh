@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Send Waiting Alert to Discord
         run: |
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW"
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW"
           $payload = @{
               username = "RDP Manager Bot"
               embeds = @(
