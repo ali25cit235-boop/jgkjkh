@@ -19,25 +19,31 @@ jobs:
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
 
-      - name: Connect Oracle SSH Tunnel & Send Info to Discord
+      - name: Connect Oracle SSH Tunnel & Send Diagnostic Info to Discord
         run: |
-          # Install PuTTY/Plink
           choco install putty -y
 
           $oracleIP = "129.213.164.255"
           $oracleUser = "ubuntu"
-          $oraclePass = "ali" # Yahan Oracle VPS ka password likho
-          $rdpPort = "33892"
+          $oraclePass = "ali"  # Replace with actual Oracle password
+          $rdpPort = "33891"
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Replace with Discord Webhook URL
 
-          # Correct non-blocking Plink command with password and host key acceptance
-          $plinkCmd = "plink.exe -ssh -pw `"$oraclePass`" -batch -y -N -R 0.0.0.0:${rdpPort}:localhost:3389 ${oracleUser}@${oracleIP}"
-          Start-Process powershell -ArgumentList "-Command $plinkCmd" -WindowStyle Hidden
+          # Execute Plink with explicit stdout and stderr redirect files
+          $plinkArgs = "-ssh -pw `"$oraclePass`" -batch -y -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
+          Start-Process -FilePath "plink.exe" -ArgumentList $plinkArgs -RedirectStandardOutput "ssh_out.log" -RedirectStandardError "ssh_err.log"
 
           Start-Sleep -Seconds 15
 
-          $cleanIP = "${oracleIP}:${rdpPort}"
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Yahan Discord Webhook URL likho
+          # Diagnostic Log Verification
+          $errLog = ""
+          if (Test-Path "ssh_err.log") { $errLog = Get-Content "ssh_err.log" -Raw }
+          
+          $statusText = "Tunnel Active & Forwarded"
+          if ($errLog -and $errLog.Trim().Length -gt 0) {$statusText = "Tunnel Error: $errLog"
+          }
 
+          $cleanIP = "${oracleIP}:${rdpPort}"
           $cb = '```'
           $ipFormatted = "$cb$cleanIP$cb"
 
@@ -49,6 +55,7 @@ jobs:
                       color = 3066993
                       fields = @(
                           @{ name = "IP"; value = $ipFormatted; inline = $false },
+                          @{ name = "Status/Diagnostic"; value = "$cb$statusText$cb"; inline = $false },
                           @{ name = "Username"; value = "NTechDz"; inline = $true },
                           @{ name = "Password"; value = "W1nd0ws-P4ssw0rd-2025!"; inline = $true }
                       )
