@@ -21,20 +21,22 @@ jobs:
 
       - name: Connect Oracle SSH Tunnel & Send Info to Discord
         run: |
+          # Install PuTTY/Plink
           choco install putty -y
 
           $oracleIP = "129.213.164.255"
           $oracleUser = "ubuntu"
-          $oraclePass = "ali" # Apna actual password yahan likho
-          $rdpPort = "33891"
+          $oraclePass = "ali" # Yahan Oracle VPS ka password likho
+          $rdpPort = "33892"
 
-          # -y flag automatically accepts the SSH server host key
-          echo y | plink -ssh -pw $oraclePass -N -R 0.0.0.0:${rdpPort}:localhost:3389 ${oracleUser}@${oracleIP} -batch &
-          
+          # Correct non-blocking Plink command with password and host key acceptance
+          $plinkCmd = "plink.exe -ssh -pw `"$oraclePass`" -batch -y -N -R 0.0.0.0:${rdpPort}:localhost:3389 ${oracleUser}@${oracleIP}"
+          Start-Process powershell -ArgumentList "-Command $plinkCmd" -WindowStyle Hidden
+
           Start-Sleep -Seconds 15
 
           $cleanIP = "${oracleIP}:${rdpPort}"
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Apna Webhook URL yahan likho
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Yahan Discord Webhook URL likho
 
           $cb = '```'
           $ipFormatted = "$cb$cleanIP$cb"
