@@ -25,22 +25,23 @@ jobs:
 
           $oracleIP = "129.213.164.255"
           $oracleUser = "ubuntu"
-          $oraclePass = "ali"  # Replace with actual Oracle password
+          $oraclePass = "ali"  # Oracle VPS ka password
           $rdpPort = "33891"
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Replace with Discord Webhook URL
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Discord Webhook URL
 
-          # Execute Plink with explicit stdout and stderr redirect files
-          $plinkArgs = "-ssh -pw `"$oraclePass`" -batch -y -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
-          Start-Process -FilePath "plink.exe" -ArgumentList $plinkArgs -RedirectStandardOutput "ssh_out.log" -RedirectStandardError "ssh_err.log"
+          # Correct non-blocking command using echo y to accept host key
+          $plinkCmd = "echo y | plink.exe -ssh -pw `"$oraclePass`" -batch -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
+          Start-Process powershell -ArgumentList "-Command $plinkCmd" -RedirectStandardOutput "ssh_out.log" -RedirectStandardError "ssh_err.log"
 
           Start-Sleep -Seconds 15
 
-          # Diagnostic Log Verification
+          # Diagnostic Log Check
           $errLog = ""
           if (Test-Path "ssh_err.log") { $errLog = Get-Content "ssh_err.log" -Raw }
           
           $statusText = "Tunnel Active & Forwarded"
-          if ($errLog -and $errLog.Trim().Length -gt 0) {$statusText = "Tunnel Error: $errLog"
+          if ($errLog -and $errLog.Trim().Length -gt 0 -and$errLog -notmatch "Store key in cache") {
+              $statusText = "Tunnel Error: $errLog"
           }
 
           $cleanIP = "${oracleIP}:${rdpPort}"
