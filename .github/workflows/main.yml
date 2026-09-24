@@ -4,22 +4,63 @@ on:
   workflow_dispatch:
 
 jobs:
-  request-approval:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: windows-latest
     steps:
-      - name: Send Waiting Alert to Discord
+      - name: Configure RDP & Create Admin
         run: |
-          WEBHOOK_URL="https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+
+          New-LocalUser "NTechDz" -Password (ConvertTo-SecureString -AsPlainText "W1nd0ws-P4ssw0rd-2025!" -Force) -FullName "NTechDz User"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
+          Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
+
+      - name: Connect Oracle SSH Tunnel & Send Info to Discord
+        run: |
+          $oracleIP = "129.213.164.255"
+          $oracleUser = "ubuntu"
+          $oraclePass = "ali"  # Apna Oracle VPS ka password yahan likho
+          $rdpPort = "33891"
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW" # Apna Discord Webhook URL yahan likho
+
+          # Native SSH Tunnel in background (No host key prompts)
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = "ssh"
+          $psi.Arguments = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
+          $psi.UseShellExecute = $false$psi.RedirectStandardInput = $true$psi.RedirectStandardError = "ssh_err.log"
+          $psi.RedirectStandardOutput = "ssh_out.log"
+          $p = [System.Diagnostics.Process]::Start($psi)
           
-          PAYLOAD='{
-            "username": "RDP Manager Bot",
-            "embeds": [
-              {
-                "title": "⏳ Wait for Admin Approval",
-                "description": "New RDP request initiated. Please approve the workflow run in GitHub Actions to generate credentials.",
-                "color": 16776960
-              }
-            ]
-          }'
-          
-          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$WEBHOOK_URL"
+          # Send password non-interactively
+          $p.StandardInput.WriteLine($oraclePass)
+
+          Start-Sleep -Seconds 12
+
+          $cleanIP = "${oracleIP}:${rdpPort}"
+          $cb = '```'
+          $ipFormatted = "$cb$cleanIP$cb"
+
+          $payload = @{
+              username = "RDP Manager Bot"
+              embeds = @(
+                  @{
+                      title = "🚀 New RDP Ready (Direct Connect)"
+                      color = 3066993
+                      fields = @(
+                          @{ name = "IP"; value = $ipFormatted; inline = $false },
+                          @{ name = "Username"; value = "NTechDz"; inline = $true },
+                          @{ name = "Password"; value = "W1nd0ws-P4ssw0rd-2025!"; inline = $true }
+                      )
+                  }
+              )
+          } | ConvertTo-Json -Depth 5
+
+          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType "application/json"
+
+      - name: Keep Alive Loop
+        run: |
+          while ($true) {
+              Start-Sleep -Seconds 60
+          }
