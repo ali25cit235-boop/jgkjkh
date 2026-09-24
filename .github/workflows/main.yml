@@ -1,91 +1,24 @@
 name: Rdp1-ByNTechDz
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+  request-approval:
+    runs-on: ubuntu-latest
     steps:
-      - name: Configure RDP & Create Admin
+      - name: Send Waiting Alert to Discord
         run: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-
-          New-LocalUser "NTechDz" -Password (ConvertTo-SecureString -AsPlainText "W1nd0ws-P4ssw0rd-2025!" -Force) -FullName "NTechDz User"
-          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
-          Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
-
-      - name: Connect Oracle SSH Tunnel & Send Diagnostic Info to Discord
-        run: |
-          $oracleIP = "129.213.164.255"
-          $oracleUser = "ubuntu"
-          $oraclePass = "ali"  # Oracle VPS ka password yahan likho
-          $rdpPort = "33891"
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW" # Discord Webhook URL yahan likho
-
-          # Native Windows SSH Tunnel with automated password injection and strict key bypass
-          $sshArgs = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
-          
-          # Use sshpass equivalent via PowerShell automation or start process
-          $scriptBlock = {
-              param($pass,$argsList)
-              # Using built-in ssh command
-              echo $pass \vert{} & ssh$argsList
-          }
-
-          # Alternative direct background execution for native SSH
-          $env:SSHPASS =$oraclePass
-          
-          # Start native SSH tunnel in background using Start-Process
-          $psi = New-Object System.Diagnostics.ProcessStartInfo
-          $psi.FileName = "ssh"
-          $psi.Arguments = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
-          $psi.UseShellExecute = $false$psi.RedirectStandardInput = $true$psi.RedirectStandardError = "ssh_err.log"
-          $psi.RedirectStandardOutput = "ssh_out.log"
-          $p = [System.Diagnostics.Process]::Start($psi)
-          
-          # Send password to stdin non-interactively
-          $p.StandardInput.WriteLine($oraclePass)
-
-          Start-Sleep -Seconds 15
-
-          # Diagnostic Log Check
-          $errLog = ""
-          if (Test-Path "ssh_err.log") { $errLog = Get-Content "ssh_err.log" -Raw }
-          
-          $statusText = "Tunnel Active & Forwarded"
-          if ($errLog -and $errLog.Trim().Length -gt 0 -and$errLog -notmatch "Permanently added") {
-              $statusText = "Tunnel Active (Running)"
-          }
-
-          $cleanIP = "${oracleIP}:${rdpPort}"
-          $cb = '```'
-          $ipFormatted = "$cb$cleanIP$cb"
-
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552646105735364708/aV6IoOuCKUqnVCHbfPPCN-dzFsRkri3Ufzh2ViFPM1UA-kPfmjg7p9sKuI9hZNb9XYOW"
           $payload = @{
               username = "RDP Manager Bot"
               embeds = @(
                   @{
-                      title = "🚀 New RDP Ready (Ticket 001)"
-                      color = 3066993
-                      fields = @(
-                          @{ name = "IP"; value = $ipFormatted; inline = $false },
-                          @{ name = "Status/Diagnostic"; value = "$cb$statusText$cb"; inline = $false },
-                          @{ name = "Username"; value = "NTechDz"; inline = $true },
-                          @{ name = "Password"; value = "W1nd0ws-P4ssw0rd-2025!"; inline = $true }
-                      )
+                      title = "⏳ Wait for Admin Approval"
+                      description = "New RDP request initiated. Please approve the workflow run in GitHub Actions to generate credentials."
+                      color = 16776960 # Yellow warning color
                   }
               )
           } | ConvertTo-Json -Depth 5
-
-          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType "application/json"
-
-      - name: Keep Alive Loop
-        run: |
-          while ($true) {
-              Start-Sleep -Seconds 60
-          }
+          # Agar aap PowerShell ya curl use kar rahe hain (Linux runner par curl chalega)
+          curl -H "Content-Type: application/json" -X POST -d '$payload' $webhookUrl
