@@ -35,15 +35,20 @@ jobs:
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
 
-      - name: Start Serveo Tunnel & Send to Discord
+      - name: Start Serveo Tunnel & Send Clean IP to Discord
         run: |
-          # SSH Tunnel in Background
+          # SSH Tunnel Background me start karo
           Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net" -RedirectStandardOutput "serveo.log" -RedirectStandardError "serveo_err.log"
-          Start-Sleep -Seconds 10
+          Start-Sleep -Seconds 12
 
-          $log = Get-Content serveo.log -ErrorAction SilentlyContinue
-          $errLog = Get-Content serveo_err.log -ErrorAction SilentlyContinue
-          $tunnelDetails = "$log $errLog"
+          # Serveo log se raw text read karo
+          $rawLog = (Get-Content serveo.log -ErrorAction SilentlyContinue) + (Get-Content serveo_err.log -ErrorAction SilentlyContinue) -join " "
+
+          # Regex se sirf clean IP/Port extract karo (e.g. serveusercontent.com:48831)
+          $cleanIP = "Not Found"
+          if ($rawLog -match "serveusercontent\.com:\d+") {
+              $cleanIP = $matches[0]
+          }
 
           # DISCORD WEBHOOK CONFIGURATION
           $webhookUrl = "https://discordapp.com/api/webhooks/1552564274096898068/9UaYtqXocUgkmVnuDMq2QVdZ5UMqRDjxVGTIUXO63lPEFgG3mpi9soL3IAQRshVa7O_K"
@@ -55,7 +60,7 @@ jobs:
                       title = "🚀 New RDP Ready (Ticket 001)"
                       color = 3066993
                       fields = @(
-                          @{ name = "Connection / Tunnel Logs"; value = "$tunnelDetails"; inline = $false },
+                          @{ name = "IP"; value = "```$cleanIP```"; inline = $false },
                           @{ name = "Username"; value = "NTechDz"; inline = $true },
                           @{ name = "Password"; value = "W1nd0ws-P4ssw0rd-2025!"; inline = $true }
                       )
