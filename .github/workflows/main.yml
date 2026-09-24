@@ -9,16 +9,17 @@ jobs:
     steps:
       - name: Send Waiting Alert to Discord
         run: |
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW"
-          $payload = @{
-              username = "RDP Manager Bot"
-              embeds = @(
-                  @{
-                      title = "⏳ Wait for Admin Approval"
-                      description = "New RDP request initiated. Please approve the workflow run in GitHub Actions to generate credentials."
-                      color = 16776960 # Yellow warning color
-                  }
-              )
-          } | ConvertTo-Json -Depth 5
-          # Agar aap PowerShell ya curl use kar rahe hain (Linux runner par curl chalega)
-          curl -H "Content-Type: application/json" -X POST -d '$payload' $webhookUrl
+          WEBHOOK_URL="https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW"
+          
+          PAYLOAD='{
+            "username": "RDP Manager Bot",
+            "embeds": [
+              {
+                "title": "⏳ Wait for Admin Approval",
+                "description": "New RDP request initiated. Please approve the workflow run in GitHub Actions to generate credentials.",
+                "color": 16776960
+              }
+            ]
+          }'
+          
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$WEBHOOK_URL"
