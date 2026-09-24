@@ -9,22 +9,6 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Power & Pagefile Optimization
-        run: |
-          Write-Host "⏳ Setting High Performance Power Plan..."
-          powercfg /setactive SCHEME_MIN
-
-          Write-Host "⏳ Expanding Virtual RAM (Pagefile) to 32 GB..."
-          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' -Name "PagingFiles" -Value "C:\pagefile.sys 32768 32768"
-
-          Write-Host "⏳ Disabling Visual Effects..."
-          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name "VisualFXSetting" -Value 2
-
-      - name: Freeing Up Storage Space
-        run: |
-          Remove-Item -Path "C:\Android" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "C:\hostedtoolcache" -Recurse -Force -ErrorAction SilentlyContinue
-
       - name: Configure RDP & Create Admin
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
@@ -58,7 +42,7 @@ jobs:
           }
 
           # DISCORD WEBHOOK CONFIGURATION
-          $webhookUrl = "https://discordapp.com/api/webhooks/1552564274096898068/9UaYtqXocUgkmVnuDMq2QVdZ5UMqRDjxVGTIUXO63lPEFgG3mpi9soL3IAQRshVa7O_K"
+          $webhookUrl = "YOUR_DISCORD_WEBHOOK_URL_HERE"
 
           $cb = '```'
           $ipFormatted = "$cb$cleanIP$cb"
