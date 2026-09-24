@@ -1,7 +1,9 @@
 name: RdpByNTechDz-Admin
 
 on:
-  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Har 6 ghante baad auto-run hoga
+  workflow_dispatch:        # Manual run karne ke liye
 
 jobs:
   build:
@@ -11,47 +13,60 @@ jobs:
         run: |
           Write-Host "⏳ Setting High Performance Power Plan..."
           powercfg /setactive SCHEME_MIN
-          Write-Host "✅ Power plan configured!"
 
           Write-Host "⏳ Expanding Virtual RAM (Pagefile) to 32 GB..."
           Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' -Name "PagingFiles" -Value "C:\pagefile.sys 32768 32768"
-          Write-Host "✅ Virtual RAM expanded!"
 
-          Write-Host "⏳ Disabling Animations & Visual Effects for speed..."
+          Write-Host "⏳ Disabling Visual Effects..."
           Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name "VisualFXSetting" -Value 2
-          Write-Host "✅ Visual effects disabled!"
 
-      - name: Freeing Up Storage Space (Live Updates)
+      - name: Freeing Up Storage Space
         run: |
-          Write-Host "⏳ [1/2] Cleaning Android SDK (~10 GB)... Please wait..."
           Remove-Item -Path "C:\Android" -Recurse -Force -ErrorAction SilentlyContinue
-          Write-Host "✅ Android SDK Removed!"
-
-          Write-Host "⏳ [2/2] Cleaning Hosted Tool Cache (~25 GB)... Please wait..."
           Remove-Item -Path "C:\hostedtoolcache" -Recurse -Force -ErrorAction SilentlyContinue
-          Write-Host "✅ Tool Cache Removed! Storage cleanup complete."
 
       - name: Configure RDP & Create Admin
         run: |
-          Write-Host "⏳ Enabling Remote Desktop Services..."
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-          Write-Host "✅ Remote Desktop Enabled!"
 
-          Write-Host "⏳ Creating Admin User 'NTechDz'..."
           New-LocalUser "NTechDz" -Password (ConvertTo-SecureString -AsPlainText "W1nd0ws-P4ssw0rd-2025!" -Force) -FullName "NTechDz User"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
-          Write-Host "✅ Admin User Created Successfully!"
 
-      - name: Start TCP RDP Tunnel via Serveo
+      - name: Start Serveo Tunnel & Send to Discord
         run: |
-          Write-Host "======================================================================"
-          Write-Host "            RDP Connection Details - NTechDz Channel"
-          Write-Host "======================================================================"
-          Write-Host "Username:    NTechDz (Administrator)"
-          Write-Host "Password:    W1nd0ws-P4ssw0rd-2025!"
-          Write-Host "======================================================================"
-          Write-Host "🚀 Starting Tunnel Connection..."
-          ssh -T -o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net
+          # SSH Tunnel in Background
+          Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net" -RedirectStandardOutput "serveo.log" -RedirectStandardError "serveo_err.log"
+          Start-Sleep -Seconds 10
+
+          $log = Get-Content serveo.log -ErrorAction SilentlyContinue
+          $errLog = Get-Content serveo_err.log -ErrorAction SilentlyContinue
+          $tunnelDetails = "$log $errLog"
+
+          # DISCORD WEBHOOK CONFIGURATION
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552564274096898068/9UaYtqXocUgkmVnuDMq2QVdZ5UMqRDjxVGTIUXO63lPEFgG3mpi9soL3IAQRshVa7O_K"
+
+          $body = @{
+              username = "RDP Manager Bot"
+              embeds = @(
+                  @{
+                      title = "🚀 New RDP Ready (Ticket 001)"
+                      color = 3066993
+                      fields = @(
+                          @{ name = "Connection / Tunnel Logs"; value = "$tunnelDetails"; inline = $false },
+                          @{ name = "Username"; value = "NTechDz"; inline = $true },
+                          @{ name = "Password"; value = "W1nd0ws-P4ssw0rd-2025!"; inline = $true }
+                      )
+                  }
+              )
+          } | ConvertTo-Json -Depth 5
+
+          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $body -ContentType "application/json"
+
+      - name: Keep Alive Loop
+        run: |
+          while ($true) {
+              Start-Sleep -Seconds 60
+          }
