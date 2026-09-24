@@ -35,26 +35,25 @@ jobs:
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
 
-      - name: Start Serveo Tunnel & Send Clean IP to Discord
+      - name: Start Pinggy Tunnel & Send Clean IP to Discord
         run: |
-          # SSH Tunnel Background me start karo
-          Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net" -RedirectStandardOutput "serveo.log" -RedirectStandardError "serveo_err.log"
+          # Pinggy SSH Tunnel Start
+          Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
           Start-Sleep -Seconds 15
 
           # Logs read karo
           $logContent = ""
-          if (Test-Path "serveo.log") { $logContent += Get-Content "serveo.log" -Raw }
-          if (Test-Path "serveo_err.log") { $logContent += Get-Content "serveo_err.log" -Raw }
+          if (Test-Path "pinggy.log") { $logContent += Get-Content "pinggy.log" -Raw }
+          if (Test-Path "pinggy_err.log") { $logContent += Get-Content "pinggy_err.log" -Raw }
 
-          # Remove ANSI color codes for clean matching
+          # Clean ANSI codes
           $cleanLog =$logContent -replace '\x1b\[[0-9;]*[a-zA-Z]', ''
 
-          # Double-check Regex extraction logic
+          # Extract Pinggy IP:Port (e.g. a.pinggy.io:12345)
           $cleanIP = "Not Found"
-          if ($cleanLog -match "serveousercontent\.com:\d+") {
-              $cleanIP = $matches[0]           } elseif ($cleanLog -match "Allocated port (\d+)") {
-              $port =$matches[1]
-              $cleanIP = "serveousercontent.com:$port"
+          if ($cleanLog -match "tcp://([\w\.]+\.pinggy\.io:\d+)") {
+              $cleanIP = $matches[1]           } elseif ($cleanLog -match "([\w\.]+\.pinggy\.io:\d+)") {
+              $cleanIP =$matches[1]
           }
 
           # DISCORD WEBHOOK CONFIGURATION
