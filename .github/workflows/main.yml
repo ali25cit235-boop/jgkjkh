@@ -1,4 +1,5 @@
 name: RdpByNTechDz-Admin
+
 on:
   workflow_dispatch:
 
@@ -6,6 +7,31 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      - name: Maximize CPU, RAM & Free Storage Space
+        run: |
+          # 1. CPU High Performance Power Plan Enable
+          powercfg /s 8c5e7cd5-0a8d-41a5-9e37-133502055102
+
+          # 2. Virtual RAM Expand (32 GB Pagefile Boost)
+          $System = Get-WmiObject -Class Win32_ComputerSystem
+          $System.AutomaticManagedPagefile = $False
+          $System.Put()
+          $PageFile = Get-WmiObject -Class Win32_PageFileSetting
+          if ($PageFile) {
+              $PageFile.InitialSize = 32768
+              $PageFile.MaximumSize = 32768
+              $PageFile.Put()
+          } else {
+              Set-WmiInstance -Class Win32_PageFileSetting -Arguments @{Name = "C:\pagefile.sys"; InitialSize = 32768; MaximumSize = 32768}
+          }
+
+          # 3. Clean Junk Folders to Maximize Storage (~35 GB Extra Space)
+          Remove-Item -Path "C:\hostedtoolcache" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "C:\Android" -Recurse -Force -ErrorAction SilentlyContinue
+
+          # 4. Disable Visual Effects for Smooth RDP Performance
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name "VisualFXSetting" -Value 2
+
       - name: Configure RDP and Create Admin User
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
