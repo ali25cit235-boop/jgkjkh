@@ -17,18 +17,25 @@ jobs:
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
 
-      - name: Connect Oracle SSH Tunnel & Send Info to Discord
+      - name: Setup Secure SSH Known Hosts & Connect Tunnel
         run: |
+          # Oracle VPS ki verified public key ko GitHub runner par securely save karna
+          $sshDir = "$env:USERPROFILE\.ssh"
+          if (!(Test-Path $sshDir)) { New-Item -ItemType Directory -Path$sshDir }
+          
+          # Aapki di gayi exact verified key ko known_hosts me likh rahe hain
+          "129.213.164.255 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEsDzi4hhwVmbrhwypuXSa2whtCDeRzhpU+5IXTdTcZM" | Out-File -Encoding ascii "$sshDir\known_hosts"
+
           $oracleIP = "129.213.164.255"
           $oracleUser = "ubuntu"
           $oraclePass = "ali"  # Apna Oracle VPS ka password yahan likho
           $rdpPort = "33891"
           $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW" # Apna Discord Webhook URL yahan likho
 
-          # Native SSH Tunnel in background (No host key prompts)
+          # Native SSH Tunnel in background with verified key check
           $psi = New-Object System.Diagnostics.ProcessStartInfo
           $psi.FileName = "ssh"
-          $psi.Arguments = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
+          $psi.Arguments = "-o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
           $psi.UseShellExecute = $false$psi.RedirectStandardInput = $true$psi.RedirectStandardError = "ssh_err.log"
           $psi.RedirectStandardOutput = "ssh_out.log"
           $p = [System.Diagnostics.Process]::Start($psi)
@@ -46,7 +53,7 @@ jobs:
               username = "RDP Manager Bot"
               embeds = @(
                   @{
-                      title = "🚀 New RDP Ready (Direct Connect)"
+                      title = "🚀 New RDP Ready (Securely Verified)"
                       color = 3066993
                       fields = @(
                           @{ name = "IP"; value = $ipFormatted; inline = $false },
