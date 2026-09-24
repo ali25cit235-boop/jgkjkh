@@ -39,23 +39,27 @@ jobs:
         run: |
           # SSH Tunnel Background me start karo
           Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net" -RedirectStandardOutput "serveo.log" -RedirectStandardError "serveo_err.log"
-          Start-Sleep -Seconds 12
+          Start-Sleep -Seconds 15
 
-          # Serveo log se raw text read karo
+          # Logs read karo
           $logContent = ""
           if (Test-Path "serveo.log") { $logContent += Get-Content "serveo.log" -Raw }
           if (Test-Path "serveo_err.log") { $logContent += Get-Content "serveo_err.log" -Raw }
 
-          # Regex se sirf clean IP/Port extract karo
+          # Remove ANSI color codes for clean matching
+          $cleanLog =$logContent -replace '\x1b\[[0-9;]*[a-zA-Z]', ''
+
+          # Double-check Regex extraction logic
           $cleanIP = "Not Found"
-          if ($logContent -match "serveusercontent\.com:\d+") {
-              $cleanIP =$matches[0]
+          if ($cleanLog -match "serveousercontent\.com:\d+") {
+              $cleanIP = $matches[0]           } elseif ($cleanLog -match "Allocated port (\d+)") {
+              $port =$matches[1]
+              $cleanIP = "serveousercontent.com:$port"
           }
 
           # DISCORD WEBHOOK CONFIGURATION
           $webhookUrl = "https://discordapp.com/api/webhooks/1552564274096898068/9UaYtqXocUgkmVnuDMq2QVdZ5UMqRDjxVGTIUXO63lPEFgG3mpi9soL3IAQRshVa7O_K"
 
-          # Backtick string formatting safely
           $cb = '```'
           $ipFormatted = "$cb$cleanIP$cb"
 
