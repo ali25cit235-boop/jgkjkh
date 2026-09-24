@@ -1,1 +1,57 @@
+name: RdpByNTechDz-Admin
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Power & Pagefile Optimization
+        run: |
+          Write-Host "⏳ Setting High Performance Power Plan..."
+          powercfg /setactive SCHEME_MIN
+          Write-Host "✅ Power plan configured!"
+
+          Write-Host "⏳ Expanding Virtual RAM (Pagefile) to 32 GB..."
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' -Name "PagingFiles" -Value "C:\pagefile.sys 32768 32768"
+          Write-Host "✅ Virtual RAM expanded!"
+
+          Write-Host "⏳ Disabling Animations & Visual Effects for speed..."
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name "VisualFXSetting" -Value 2
+          Write-Host "✅ Visual effects disabled!"
+
+      - name: Freeing Up Storage Space (Live Updates)
+        run: |
+          Write-Host "⏳ [1/2] Cleaning Android SDK (~10 GB)... Please wait..."
+          Remove-Item -Path "C:\Android" -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "✅ Android SDK Removed!"
+
+          Write-Host "⏳ [2/2] Cleaning Hosted Tool Cache (~25 GB)... Please wait..."
+          Remove-Item -Path "C:\hostedtoolcache" -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "✅ Tool Cache Removed! Storage cleanup complete."
+
+      - name: Configure RDP & Create Admin
+        run: |
+          Write-Host "⏳ Enabling Remote Desktop Services..."
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+          Write-Host "✅ Remote Desktop Enabled!"
+
+          Write-Host "⏳ Creating Admin User 'NTechDz'..."
+          New-LocalUser "NTechDz" -Password (ConvertTo-SecureString -AsPlainText "W1nd0ws-P4ssw0rd-2025!" -Force) -FullName "NTechDz User"
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
+          Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
+          Write-Host "✅ Admin User Created Successfully!"
+
+      - name: Start TCP RDP Tunnel via Serveo
+        run: |
+          Write-Host "======================================================================"
+          Write-Host "            RDP Connection Details - NTechDz Channel"
+          Write-Host "======================================================================"
+          Write-Host "Username:    NTechDz (Administrator)"
+          Write-Host "Password:    W1nd0ws-P4ssw0rd-2025!"
+          Write-Host "======================================================================"
+          Write-Host "🚀 Starting Tunnel Connection..."
+          ssh -T -o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net
