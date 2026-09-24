@@ -1,9 +1,9 @@
-name: RdpByNTechDz-Admin
+name: Rdp1-ByNTechDz
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Har 6 ghante baad auto-run hoga
-  workflow_dispatch:        # Manual run karne ke liye
+    - cron: '0 */6 * * *'  # Har 6 ghante baad auto-restart hoga
+  workflow_dispatch:        # Manual start karne ke liye
 
 jobs:
   build:
@@ -19,30 +19,26 @@ jobs:
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "NTechDz"
           Add-LocalGroupMember -Group "Administrators" -Member "NTechDz"
 
-      - name: Start Pinggy Tunnel & Send Clean IP to Discord
+      - name: Connect Oracle SSH Tunnel & Send Info to Discord
         run: |
-          # Pinggy SSH Tunnel Start
-          Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R 0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
-          Start-Sleep -Seconds 15
+          # SSH client / PuTTY install karo
+          choco install putty -y
 
-          # Logs read karo
-          $logContent = ""
-          if (Test-Path "pinggy.log") { $logContent += Get-Content "pinggy.log" -Raw }
-          if (Test-Path "pinggy_err.log") { $logContent += Get-Content "pinggy_err.log" -Raw }
+          # APNI ORACLE VPS KI DETAILS YAHAN DARJ KARO
+          $oracleIP = "129.213.164.255"        # e.g. "129.150.x.x"
+          $oracleUser = "ubuntu"              # Oracle VPS user
+          $oraclePass = "ali"# Jo password set kiya tha
+          $rdpPort = "33891"                  # Target Port (RDP 1 ke liye)
 
-          # Clean ANSI color codes
-          $cleanLog =$logContent -replace '\x1b\[[0-9;]*[a-zA-Z]', ''
+          # Background me Oracle VPS ke sath tunnel start karo
+          Start-Process -FilePath "plink.exe" -ArgumentList "-ssh -pw $oraclePass -N -R 0.0.0.0:${rdpPort}:localhost:3389 ${oracleUser}@${oracleIP} -batch"
+          Start-Sleep -Seconds 12
 
-          # Smart Regex: Pinggy ke sabhi domain extensions (.io, .link, .online) catch karega
-          $cleanIP = "Not Found"
-          if ($cleanLog -match "([\w\.-]+\.pinggy\.[a-zA-Z]+:\d+)") {
-              $cleanIP =$matches[1] -replace 'tcp://', ''
-          } elseif ($cleanLog -match "tcp://([^\s\x00-\x1f]+)") {
-              $cleanIP =$matches[1]
-          }
+          # Final Connection IP Address
+          $cleanIP = "${oracleIP}:${rdpPort}"
 
-          # DISCORD WEBHOOK CONFIGURATION
-          $webhookUrl = "YOUR_DISCORD_WEBHOOK_URL_HERE"
+          # DISCORD WEBHOOK URL YAHAN PASTE KARO
+          $webhookUrl = "https://discordapp.com/api/webhooks/1552646110085128192/VeYatEQXEi2XQSOKyRU1qcvKeaCvR2jalJwZ12V5lA_ybI3ZRJz88mmneuQ2pBaNp7px"
 
           $cb = '```'
           $ipFormatted = "$cb$cleanIP$cb"
@@ -66,6 +62,7 @@ jobs:
 
       - name: Keep Alive Loop
         run: |
+          # Runner ko active rakhne ke liye loop
           while ($true) {
               Start-Sleep -Seconds 60
           }
