@@ -30,14 +30,13 @@ jobs:
           $rdpPort = "33891"
           $webhookUrl = "https://discordapp.com/api/webhooks/1552653122311159839/k8LUVGUa5IawEggs_5I2r_oRDEatxXjwXeYSObx-nymSpC3ZJKGBvpBIAihClJr2gYVW"
 
-          $psi = New-Object System.Diagnostics.ProcessStartInfo
-          $psi.FileName = "ssh"
-          $psi.Arguments = "-o ServerAliveInterval=30 -N -R 0.0.0.0:${rdpPort}:127.0.0.1:3389 ${oracleUser}@${oracleIP}"
-          $psi.UseShellExecute = $false$psi.RedirectStandardInput = $true$psi.RedirectStandardError = "ssh_err.log"
-          $psi.RedirectStandardOutput = "ssh_out.log"
-          $p = [System.Diagnostics.Process]::Start($psi)
+          # Simple background job for SSH tunnel without parser errors
+          $scriptBlock = {
+              param($ip, $user,$pass, $port)$sshArgs = "-o ServerAliveInterval=30 -N -R 0.0.0.0:${port}:127.0.0.1:3389 ${user}@${ip}"
+              echo $pass \vert{} ssh$sshArgs
+          }
           
-          $p.StandardInput.WriteLine($oraclePass)
+          Start-Job -ScriptBlock $scriptBlock -ArgumentList $oracleIP,$oracleUser, $oraclePass,$rdpPort
 
           Start-Sleep -Seconds 12
 
