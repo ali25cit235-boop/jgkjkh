@@ -42,25 +42,31 @@ jobs:
           Start-Sleep -Seconds 12
 
           # Serveo log se raw text read karo
-          $rawLog = (Get-Content serveo.log -ErrorAction SilentlyContinue) + (Get-Content serveo_err.log -ErrorAction SilentlyContinue) -join " "
+          $logContent = ""
+          if (Test-Path "serveo.log") { $logContent += Get-Content "serveo.log" -Raw }
+          if (Test-Path "serveo_err.log") { $logContent += Get-Content "serveo_err.log" -Raw }
 
-          # Regex se sirf clean IP/Port extract karo (e.g. serveusercontent.com:48831)
+          # Regex se sirf clean IP/Port extract karo
           $cleanIP = "Not Found"
-          if ($rawLog -match "serveusercontent\.com:\d+") {
-              $cleanIP = $matches[0]
+          if ($logContent -match "serveusercontent\.com:\d+") {
+              $cleanIP =$matches[0]
           }
 
           # DISCORD WEBHOOK CONFIGURATION
           $webhookUrl = "https://discordapp.com/api/webhooks/1552564274096898068/9UaYtqXocUgkmVnuDMq2QVdZ5UMqRDjxVGTIUXO63lPEFgG3mpi9soL3IAQRshVa7O_K"
 
-          $body = @{
+          # Backtick string formatting safely
+          $cb = '```'
+          $ipFormatted = "$cb$cleanIP$cb"
+
+          $payload = @{
               username = "RDP Manager Bot"
               embeds = @(
                   @{
                       title = "🚀 New RDP Ready (Ticket 001)"
                       color = 3066993
                       fields = @(
-                          @{ name = "IP"; value = "```$cleanIP```"; inline = $false },
+                          @{ name = "IP"; value = $ipFormatted; inline = $false },
                           @{ name = "Username"; value = "NTechDz"; inline = $true },
                           @{ name = "Password"; value = "W1nd0ws-P4ssw0rd-2025!"; inline = $true }
                       )
@@ -68,7 +74,7 @@ jobs:
               )
           } | ConvertTo-Json -Depth 5
 
-          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $body -ContentType "application/json"
+          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body $payload -ContentType "application/json"
 
       - name: Keep Alive Loop
         run: |
